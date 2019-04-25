@@ -7,6 +7,20 @@ import (
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
+
+	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
+)
+
+const (
+	stainlessProg     = "stainless-smart"
+	stainlessCacheDir = "/tmp/stainless-cache-dir"
+	stainlessTimeout  = 60 * time.Second
 )
 
 // ServiceName is the name to refer to the Stainless service.
@@ -23,10 +37,70 @@ type Stainless struct {
 	*onet.ServiceProcessor
 }
 
+func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
+	// Return immediately if there are no source files
+	if len(sourceFiles) == 0 {
+		return "No source file", "", nil
+	}
+
+	// Ensure Stainless cache directory exists
+	err := os.MkdirAll(stainlessCacheDir, 0755)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Create temporary working directory for isolated execution
+	dir, err := ioutil.TempDir("", "stainless-")
+	if err != nil {
+		return "", "", err
+	}
+	defer os.RemoveAll(dir)
+
+	// Create source files in working directory
+	var filenames []string
+	for filename, contents := range sourceFiles {
+		err = ioutil.WriteFile(filepath.Join(dir, filename), []byte(contents), 0644)
+		if err != nil {
+			return "", "", err
+		}
+		filenames = append(filenames, filename)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), stainlessTimeout)
+	defer cancel()
+
+	// Build stainless arguments
+	args := append([]string{
+		"--json",
+		fmt.Sprintf("--cache-dir=%s", stainlessCacheDir),
+	}, filenames...)
+
+	// Build command
+	cmd := exec.CommandContext(ctx, stainlessProg, args...)
+	cmd.Dir = dir
+
+	// Execute command and retrieve console output
+	console, err := cmd.Output()
+	if err != nil {
+		return string(console), "", nil
+	}
+
+	// Read JSON report
+	report, err := ioutil.ReadFile(filepath.Join(dir, "report.json"))
+	if err != nil {
+		log.LLvl4("Error reading JSON report:", err)
+		return "", "", err
+	}
+
+	return string(console), string(report), nil
+}
+
 // Request treats external request to this service.
 func (service *Stainless) Request(req *Request) (network.Message, error) {
-	console := ""
-	report := make(map[string]interface{})
+	console, report, err := stainlessVerify(req.SourceFiles)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Lvl4("Returning", console, report)
 

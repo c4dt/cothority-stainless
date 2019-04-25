@@ -14,5 +14,5 @@ type Request struct {
 // Response is what the Stainless service will reply to clients.
 type Response struct {
 	Console string
-	Report  map[string]interface{}
+	Report  string
 }

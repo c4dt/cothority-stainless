@@ -19,7 +19,7 @@ func NewTestClient(l *onet.LocalTest) *Client {
 	return &Client{Client: l.NewClient(ServiceName)}
 }
 
-func TestServiceStainless(t *testing.T) {
+func Test_NoSource(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 
 	// generate 5 hosts, they don't connect, they process messages, and they
@@ -27,7 +27,6 @@ func TestServiceStainless(t *testing.T) {
 	_, el, _ := local.GenTree(5, false)
 	defer local.CloseAll()
 
-	// Send a request to the service
 	client := NewTestClient(local)
 
 	log.Lvl1("Sending request to service...")
@@ -36,8 +35,44 @@ func TestServiceStainless(t *testing.T) {
 	response, err := client.Request(el.List[0], sourceFiles)
 	log.ErrFatal(err)
 
-	log.Lvl1(response)
-
-	assert.Empty(t, response.Console)
+	assert.Equal(t, "No source file", response.Console)
 	assert.Empty(t, response.Report)
+}
+
+func Test_ValidContract(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+
+	// generate 5 hosts, they don't connect, they process messages, and they
+	// don't register the tree or entitylist
+	_, el, _ := local.GenTree(5, false)
+	defer local.CloseAll()
+
+	client := NewTestClient(local)
+
+	log.Lvl1("Sending request to service...")
+	sourceFiles := map[string]string{
+		"BasicContract1.scala": `
+import stainless.smartcontracts._
+import stainless.annotation._
+
+object BasicContract1 {
+    case class BasicContract1(
+        val other: Address
+    ) extends Contract {
+        @view
+        def foo = {
+            other
+        }
+    }
+}`,
+	}
+
+	response, err := client.Request(el.List[0], sourceFiles)
+	assert.Nil(t, err)
+	log.ErrFatal(err)
+
+	log.Lvl1("Response:", response)
+
+	assert.NotEmpty(t, response.Console)
+	assert.NotEmpty(t, response.Report)
 }
