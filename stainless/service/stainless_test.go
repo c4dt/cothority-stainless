@@ -22,9 +22,9 @@ func NewTestClient(l *onet.LocalTest) *Client {
 func Test_NoSource(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 
-	// generate 5 hosts, they don't connect, they process messages, and they
-	// don't register the tree or entitylist
-	_, el, _ := local.GenTree(5, false)
+	// Generate 1 host, don't connect, process messages, don't register the
+	// tree or entitylist
+	_, ro, _ := local.GenTree(1, false)
 	defer local.CloseAll()
 
 	client := NewTestClient(local)
@@ -32,19 +32,19 @@ func Test_NoSource(t *testing.T) {
 	log.Lvl1("Sending request to service...")
 	sourceFiles := map[string]string{}
 
-	response, err := client.Request(el.List[0], sourceFiles)
+	response, err := client.Request(ro.List[0], sourceFiles)
 	log.ErrFatal(err)
 
-	assert.Equal(t, "No source file", response.Console)
+	assert.Empty(t, response.Console)
 	assert.Empty(t, response.Report)
 }
 
-func Test_ValidContract(t *testing.T) {
+func Test_BasicContract(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 
-	// generate 5 hosts, they don't connect, they process messages, and they
-	// don't register the tree or entitylist
-	_, el, _ := local.GenTree(5, false)
+	// Generate 1 host, don't connect, process messages, don't register the
+	// tree or entitylist
+	_, ro, _ := local.GenTree(1, false)
 	defer local.CloseAll()
 
 	client := NewTestClient(local)
@@ -67,11 +67,11 @@ object BasicContract1 {
 }`,
 	}
 
-	response, err := client.Request(el.List[0], sourceFiles)
+	response, err := client.Request(ro.List[0], sourceFiles)
 	assert.Nil(t, err)
 	log.ErrFatal(err)
 
-	log.Lvl1("Response:", response)
+	log.Lvl1("Response:\n", response)
 
 	assert.NotEmpty(t, response.Console)
 	assert.NotEmpty(t, response.Report)

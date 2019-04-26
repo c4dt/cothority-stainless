@@ -38,9 +38,9 @@ type Stainless struct {
 }
 
 func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
-	// Return immediately if there are no source files
+	// Handle explicitely the case of no source file
 	if len(sourceFiles) == 0 {
-		return "No source file", "", nil
+		return "", "", nil
 	}
 
 	// Ensure Stainless cache directory exists
@@ -82,7 +82,7 @@ func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
 	// Execute command and retrieve console output
 	console, err := cmd.Output()
 	if err != nil {
-		return string(console), "", nil
+		return "", "", fmt.Errorf("%s\nConsole:\n%s", err.Error(), console)
 	}
 
 	// Read JSON report
