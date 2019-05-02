@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	stainlessProg     = "stainless-smart"
-	stainlessCacheDir = "/tmp/stainless-cache-dir"
-	stainlessTimeout  = 60 * time.Second
+	executable = "stainless-smart"
+	reportName = "report.json"
+	cacheDir   = "/tmp/stainless-cache-dir"
+	timeout    = 60 * time.Second
 )
 
 // ServiceName is the name to refer to the Stainless service.
@@ -28,6 +29,7 @@ const ServiceName = "Stainless"
 
 func init() {
 	onet.RegisterNewService(ServiceName, newStainlessService)
+
 	network.RegisterMessage(&VerificationRequest{})
 	network.RegisterMessage(&VerificationResponse{})
 }
@@ -38,13 +40,8 @@ type Stainless struct {
 }
 
 func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
-	// Handle explicitely the case of no source file
-	if len(sourceFiles) == 0 {
-		return "", "", nil
-	}
-
 	// Ensure Stainless cache directory exists
-	err := os.MkdirAll(stainlessCacheDir, 0755)
+	err := os.MkdirAll(cacheDir, 0755)
 	if err != nil {
 		return "", "", err
 	}
@@ -66,23 +63,25 @@ func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
 		filenames = append(filenames, filename)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), stainlessTimeout)
-	defer cancel()
-
 	// Build stainless arguments
 	args := append([]string{
 		"--json",
-		fmt.Sprintf("--cache-dir=%s", stainlessCacheDir),
+		fmt.Sprintf("--cache-dir=%s", cacheDir),
 	}, filenames...)
 
 	// Build command
-	cmd := exec.CommandContext(ctx, stainlessProg, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, executable, args...)
 	cmd.Dir = dir
 
 	// Execute command and retrieve console output
-	console, err := cmd.Output()
-	if err != nil {
-		return "", "", fmt.Errorf("%s\nConsole:\n%s", err.Error(), console)
+	console, execErr := cmd.Output()
+
+	// If no report was produced, a serious error happened
+	reportFile := filepath.Join(dir, reportName)
+	if _, err := os.Stat(reportFile); os.IsNotExist(err) {
+		return "", "", fmt.Errorf("%s\nConsole:\n%s", execErr.Error(), console)
 	}
 
 	// Read JSON report
@@ -91,7 +90,12 @@ func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
 		log.LLvl4("Error reading JSON report:", err)
 		return "", "", err
 	}
+	// If the report is empty, verification could not proceed normally
+	if string(report) == "{}" {
+		return "", "", fmt.Errorf("Error in Stainless execution -- Console:\n%s", console)
+	}
 
+	// Verification was performed, and its results are contained in the report
 	return string(console), string(report), nil
 }
 
