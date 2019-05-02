@@ -190,3 +190,31 @@ object Test {
 	assert.Equal(t, 0, valid)
 	assert.Equal(t, 1, invalid)
 }
+
+func Test_BytecodeGen(t *testing.T) {
+	local, ro, client := setupTest()
+	defer teardownTest(local)
+
+	log.Lvl1("Sending request to service...")
+	sourceFiles := map[string]string{
+		"PositiveUint.scala": `
+import stainless.smartcontracts._
+import stainless.annotation._
+import stainless.lang.StaticChecks._
+
+object PositiveUint {
+    case class PositiveUint() extends Contract {
+            @solidityPure
+         def test(@ghost a: Uint256) = {
+            assert(a >= Uint256.ZERO)
+         }
+    }
+}`,
+	}
+
+	response, err := client.GenBytecode(ro.List[0], sourceFiles)
+	assert.Nil(t, err)
+	log.ErrFatal(err)
+
+	log.Lvl1("Response:\n", response)
+}

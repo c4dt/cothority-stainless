@@ -27,3 +27,15 @@ func (c *Client) Verify(dst *network.ServerIdentity, sourceFiles map[string]stri
 
 	return response, nil
 }
+
+// GenBytecode sends a bytecode generation request
+func (c *Client) GenBytecode(dst *network.ServerIdentity, sourceFiles map[string]string) (*BytecodeGenResponse, error) {
+	response := &BytecodeGenResponse{}
+
+	err := c.SendProtobuf(dst, &BytecodeGenRequest{SourceFiles: sourceFiles}, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}

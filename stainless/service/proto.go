@@ -10,7 +10,6 @@ import ()
 
 // VerificationRequest asks the Stainless service to perform verification of contracts
 type VerificationRequest struct {
-	// Add command to be "verify" or "generate bytecode"
 	SourceFiles map[string]string
 }
 
@@ -18,4 +17,21 @@ type VerificationRequest struct {
 type VerificationResponse struct {
 	Console string
 	Report  string
+}
+
+// BytecodeGenRequest asks the Stainless service to generate Ethereum bytecode
+// of contracts
+type BytecodeGenRequest struct {
+	SourceFiles map[string]string
+}
+
+// BytecodeObj is the combination of the binary code and the ABI
+type BytecodeObj struct {
+	Abi string
+	Bin string
+}
+
+// BytecodeGenResponse is the result of a Stainless bytecode generation
+type BytecodeGenResponse struct {
+	BytecodeObjs map[string]BytecodeObj
 }

@@ -39,7 +39,7 @@ type Stainless struct {
 	*onet.ServiceProcessor
 }
 
-func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
+func verify(sourceFiles map[string]string) (string, string, error) {
 	// Ensure Stainless cache directory exists
 	err := os.MkdirAll(cacheDir, 0755)
 	if err != nil {
@@ -99,9 +99,15 @@ func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
 	return string(console), string(report), nil
 }
 
+func genBytecode(sourceFiles map[string]string) (map[string]BytecodeObj, error) {
+	bc := make(map[string]BytecodeObj)
+
+	return bc, nil
+}
+
 // Verify performs a Stainless contract verification
 func (service *Stainless) Verify(req *VerificationRequest) (network.Message, error) {
-	console, report, err := stainlessVerify(req.SourceFiles)
+	console, report, err := verify(req.SourceFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -114,12 +120,30 @@ func (service *Stainless) Verify(req *VerificationRequest) (network.Message, err
 	}, nil
 }
 
+// GenBytecode generates bytecode from Stainless contracts
+func (service *Stainless) GenBytecode(req *BytecodeGenRequest) (network.Message, error) {
+	bytecodeObjs, err := genBytecode(req.SourceFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Lvl4("Returning", bytecodeObjs)
+
+	return &BytecodeGenResponse{
+		BytecodeObjs: bytecodeObjs,
+	}, nil
+}
+
 // newStainlessService creates a new service that is built for Status
 func newStainlessService(context *onet.Context) (onet.Service, error) {
 	service := &Stainless{
 		ServiceProcessor: onet.NewServiceProcessor(context),
 	}
 	err := service.RegisterHandler(service.Verify)
+	if err != nil {
+		return nil, err
+	}
+	err = service.RegisterHandler(service.GenBytecode)
 	if err != nil {
 		return nil, err
 	}
