@@ -28,8 +28,8 @@ const ServiceName = "Stainless"
 
 func init() {
 	onet.RegisterNewService(ServiceName, newStainlessService)
-	network.RegisterMessage(&Request{})
-	network.RegisterMessage(&Response{})
+	network.RegisterMessage(&VerificationRequest{})
+	network.RegisterMessage(&VerificationResponse{})
 }
 
 // Stainless is the service that performs stainless operations.
@@ -95,8 +95,8 @@ func stainlessVerify(sourceFiles map[string]string) (string, string, error) {
 	return string(console), string(report), nil
 }
 
-// Request treats external request to this service.
-func (service *Stainless) Request(req *Request) (network.Message, error) {
+// Verify performs a Stainless contract verification
+func (service *Stainless) Verify(req *VerificationRequest) (network.Message, error) {
 	console, report, err := stainlessVerify(req.SourceFiles)
 	if err != nil {
 		return nil, err
@@ -104,18 +104,18 @@ func (service *Stainless) Request(req *Request) (network.Message, error) {
 
 	log.Lvl4("Returning", console, report)
 
-	return &Response{
+	return &VerificationResponse{
 		Console: console,
 		Report:  report,
 	}, nil
 }
 
-// newStatService creates a new service that is built for Status
+// newStainlessService creates a new service that is built for Status
 func newStainlessService(context *onet.Context) (onet.Service, error) {
 	service := &Stainless{
 		ServiceProcessor: onet.NewServiceProcessor(context),
 	}
-	err := service.RegisterHandler(service.Request)
+	err := service.RegisterHandler(service.Verify)
 	if err != nil {
 		return nil, err
 	}

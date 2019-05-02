@@ -32,7 +32,7 @@ func Test_NoSource(t *testing.T) {
 	log.Lvl1("Sending request to service...")
 	sourceFiles := map[string]string{}
 
-	response, err := client.Request(ro.List[0], sourceFiles)
+	response, err := client.Verify(ro.List[0], sourceFiles)
 	log.ErrFatal(err)
 
 	assert.Empty(t, response.Console)
@@ -67,7 +67,7 @@ object BasicContract1 {
 }`,
 	}
 
-	response, err := client.Request(ro.List[0], sourceFiles)
+	response, err := client.Verify(ro.List[0], sourceFiles)
 	assert.Nil(t, err)
 	log.ErrFatal(err)
 

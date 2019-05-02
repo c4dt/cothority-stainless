@@ -16,11 +16,11 @@ func NewClient() *Client {
 	return &Client{Client: onet.NewClient(cothority.Suite, ServiceName)}
 }
 
-// Request sends a request to the cothority
-func (c *Client) Request(dst *network.ServerIdentity, sourceFiles map[string]string) (*Response, error) {
-	response := &Response{}
+// Verify sends a verification request
+func (c *Client) Verify(dst *network.ServerIdentity, sourceFiles map[string]string) (*VerificationResponse, error) {
+	response := &VerificationResponse{}
 
-	err := c.SendProtobuf(dst, &Request{SourceFiles: sourceFiles}, response)
+	err := c.SendProtobuf(dst, &VerificationRequest{SourceFiles: sourceFiles}, response)
 	if err != nil {
 		return nil, err
 	}
