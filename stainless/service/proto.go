@@ -3,7 +3,10 @@ package stainless
 import ()
 
 // PROTOSTART
-// FIXME
+// package stainless;
+//
+// option java_package = "ch.epfl.dedis.lib.proto";
+// option java_outer_classname = "StatusProto";
 
 // Request is what the Stainless service is expected to receive from clients.
 type Request struct {
