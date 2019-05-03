@@ -42,7 +42,7 @@ func parseReport(report string) (valid int, invalid int, err error) {
 		return
 	}
 
-	// The JSON format of the report is a bit convoluted...
+	// The JSON schema of the report is a bit convoluted...
 	verif := v.(map[string]interface{})["stainless"].([]interface{})[0].([]interface{})[1].([]interface{})[0].([]interface{})
 	for _, elem := range verif {
 		status := elem.(map[string]interface{})["status"].(map[string]interface{})
@@ -212,9 +212,19 @@ object PositiveUint {
 }`,
 	}
 
+	abiFile := `[{"constant":true,"inputs":[],"name":"test","outputs":[],"payable":false,"stateMutability":"pure","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"}]`
+
 	response, err := client.GenBytecode(ro.List[0], sourceFiles)
 	assert.Nil(t, err)
-	log.ErrFatal(err)
 
 	log.Lvl1("Response:\n", response)
+
+	assert.Contains(t, response.BytecodeObjs, "PositiveUint.sol")
+
+	generated := response.BytecodeObjs["PositiveUint.sol"]
+
+	assert.Equal(t, abiFile, generated.Abi)
+
+	// The contents of the bin file does not seem deterministic (last 68 bytes changing?)
+	assert.NotEmpty(t, generated.Bin)
 }

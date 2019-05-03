@@ -33,5 +33,5 @@ type BytecodeObj struct {
 
 // BytecodeGenResponse is the result of a Stainless bytecode generation
 type BytecodeGenResponse struct {
-	BytecodeObjs map[string]BytecodeObj
+	BytecodeObjs map[string]*BytecodeObj
 }
