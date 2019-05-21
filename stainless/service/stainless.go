@@ -11,12 +11,19 @@ import (
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -278,18 +285,136 @@ func (service *Stainless) GenBytecode(req *BytecodeGenRequest) (network.Message,
 	}, nil
 }
 
+func decodeArgs(encodedArgs []string) ([]interface{}, error) {
+	args := make([]interface{}, len(encodedArgs))
+	for i, argJSON := range encodedArgs {
+		var arg interface{}
+		err := json.Unmarshal([]byte(argJSON), &arg)
+		if err != nil {
+			return nil, err
+		}
+
+		// HACK: the JSON unmarshaller decodes numbers as float64's; convert them to BigInt's
+		// This currently does not support nested structures.
+		if reflect.TypeOf(arg).Kind() == reflect.Float64 {
+			args[i] = big.NewInt(int64(arg.(float64)))
+		} else {
+			args[i] = arg
+		}
+
+		log.Lvlf2("arg #%d: %v (%s)", i, args[i], reflect.TypeOf(args[i]).Kind())
+	}
+
+	return args, nil
+}
+
+func (service *Stainless) DeployContract(req *DeployRequest) (network.Message, error) {
+	abi, err := abi.JSON(strings.NewReader(req.Abi))
+	if err != nil {
+		return nil, err
+	}
+
+	args, err := decodeArgs(req.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	packedArgs, err := abi.Pack("", args...)
+	if err != nil {
+		return nil, err
+	}
+
+	callData := append(req.Bytecode, packedArgs...)
+
+	tx := types.NewContractCreation(0, big.NewInt(int64(req.Amount)), req.GasLimit, big.NewInt(int64(req.GasPrice)), callData)
+
+	signer := types.HomesteadSigner{}
+	hashedTx := signer.Hash(tx)
+
+	unsignedBuffer, err := tx.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Lvl4("Returning", unsignedBuffer, hashedTx)
+
+	return &TransactionHashResponse{Transaction: unsignedBuffer, TransactionHash: hashedTx[:]}, nil
+}
+
+func (service *Stainless) ExecuteTransaction(req *TransactionRequest) (network.Message, error) {
+	abi, err := abi.JSON(strings.NewReader(req.Abi))
+	if err != nil {
+		return nil, err
+	}
+
+	args, err := decodeArgs(req.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	callData, err := abi.Pack(req.Method, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := types.NewTransaction(req.Nonce, common.BytesToAddress(req.ContractAddress), big.NewInt(int64(req.Amount)), req.GasLimit, big.NewInt(int64(req.GasPrice)), callData)
+
+	signer := types.HomesteadSigner{}
+	hashedTx := signer.Hash(tx)
+
+	unsignedBuffer, err := tx.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Lvl4("Returning", unsignedBuffer, hashedTx)
+
+	return &TransactionHashResponse{Transaction: unsignedBuffer, TransactionHash: hashedTx[:]}, nil
+}
+
+func (service *Stainless) FinalizeTransaction(req *TransactionFinalizationRequest) (network.Message, error) {
+	signer := types.HomesteadSigner{}
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON(req.Transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	signedTx, err := tx.WithSignature(signer, req.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	signedBuffer, err := signedTx.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Lvl4("Returning", signedBuffer)
+
+	return &TransactionResponse{
+		Transaction: signedBuffer,
+	}, nil
+}
+
 // newStainlessService creates a new service that is built for Status
 func newStainlessService(context *onet.Context) (onet.Service, error) {
 	service := &Stainless{
 		ServiceProcessor: onet.NewServiceProcessor(context),
 	}
-	err := service.RegisterHandler(service.Verify)
-	if err != nil {
-		return nil, err
-	}
-	err = service.RegisterHandler(service.GenBytecode)
-	if err != nil {
-		return nil, err
+
+	for _, srv := range []interface{}{
+		service.Verify,
+		service.GenBytecode,
+		service.DeployContract,
+		service.ExecuteTransaction,
+		service.FinalizeTransaction,
+	} {
+		err := service.RegisterHandler(srv)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return service, nil

@@ -39,3 +39,58 @@ func (c *Client) GenBytecode(dst *network.ServerIdentity, sourceFiles map[string
 
 	return response, nil
 }
+
+func (c *Client) DeployContract(dst *network.ServerIdentity, gasLimit uint64, gasPrice uint64, amount uint64, bytecode []byte, abi string, args ...string) (*TransactionHashResponse, error) {
+	request := &DeployRequest{
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Amount:   amount,
+		Bytecode: bytecode,
+		Abi:      abi,
+		Args:     args,
+	}
+	response := &TransactionHashResponse{}
+
+	err := c.SendProtobuf(dst, request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
+}
+
+func (c *Client) ExecuteTransaction(dst *network.ServerIdentity, gasLimit uint64, gasPrice uint64, amount uint64, contractAddress []byte, nonce uint64, abi string, method string, args ...string) (*TransactionHashResponse, error) {
+	request := &TransactionRequest{
+		GasLimit:        gasLimit,
+		GasPrice:        gasPrice,
+		Amount:          amount,
+		ContractAddress: contractAddress,
+		Nonce:           nonce,
+		Abi:             abi,
+		Method:          method,
+		Args:            args,
+	}
+	response := &TransactionHashResponse{}
+
+	err := c.SendProtobuf(dst, request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
+}
+
+func (c *Client) FinalizeTransaction(dst *network.ServerIdentity, tx []byte, signature []byte) (*TransactionResponse, error) {
+	request := &TransactionFinalizationRequest{
+		Transaction: tx,
+		Signature:   signature,
+	}
+	response := &TransactionResponse{}
+
+	err := c.SendProtobuf(dst, request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
+}

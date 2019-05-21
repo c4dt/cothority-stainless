@@ -35,3 +35,37 @@ type BytecodeObj struct {
 type BytecodeGenResponse struct {
 	BytecodeObjs map[string]*BytecodeObj
 }
+
+type DeployRequest struct {
+	GasLimit uint64
+	GasPrice uint64
+	Amount   uint64
+	Bytecode []byte
+	Abi      string   // JSON-encoded
+	Args     []string // JSON-encoded
+}
+
+type TransactionRequest struct {
+	GasLimit        uint64
+	GasPrice        uint64
+	Amount          uint64
+	ContractAddress []byte
+	Nonce           uint64
+	Abi             string // JSON-encoded
+	Method          string
+	Args            []string // JSON-encoded
+}
+
+type TransactionHashResponse struct {
+	Transaction     []byte
+	TransactionHash []byte
+}
+
+type TransactionFinalizationRequest struct {
+	Transaction []byte
+	Signature   []byte
+}
+
+type TransactionResponse struct {
+	Transaction []byte
+}
