@@ -40,11 +40,12 @@ func (c *Client) GenBytecode(dst *network.ServerIdentity, sourceFiles map[string
 	return response, nil
 }
 
-func (c *Client) DeployContract(dst *network.ServerIdentity, gasLimit uint64, gasPrice uint64, amount uint64, bytecode []byte, abi string, args ...string) (*TransactionHashResponse, error) {
+func (c *Client) DeployContract(dst *network.ServerIdentity, gasLimit uint64, gasPrice uint64, amount uint64, nonce uint64, bytecode []byte, abi string, args ...string) (*TransactionHashResponse, error) {
 	request := &DeployRequest{
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 		Amount:   amount,
+		Nonce:    nonce,
 		Bytecode: bytecode,
 		Abi:      abi,
 		Args:     args,

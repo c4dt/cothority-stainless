@@ -326,7 +326,7 @@ func (service *Stainless) DeployContract(req *DeployRequest) (network.Message, e
 
 	callData := append(req.Bytecode, packedArgs...)
 
-	tx := types.NewContractCreation(0, big.NewInt(int64(req.Amount)), req.GasLimit, big.NewInt(int64(req.GasPrice)), callData)
+	tx := types.NewContractCreation(req.Nonce, big.NewInt(int64(req.Amount)), req.GasLimit, big.NewInt(int64(req.GasPrice)), callData)
 
 	signer := types.HomesteadSigner{}
 	hashedTx := signer.Hash(tx)

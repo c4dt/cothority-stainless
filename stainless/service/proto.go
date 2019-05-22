@@ -40,6 +40,7 @@ type DeployRequest struct {
 	GasLimit uint64
 	GasPrice uint64
 	Amount   uint64
+	Nonce    uint64
 	Bytecode []byte
 	Abi      string   // JSON-encoded
 	Args     []string // JSON-encoded
