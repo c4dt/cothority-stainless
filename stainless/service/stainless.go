@@ -14,7 +14,7 @@ import (
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 
-	"github.com/c4dt/cothority-bevm/bevm"
+	"github.com/c4dt/cothority-stainless/bevm"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
