@@ -7,6 +7,8 @@ require (
 	github.com/ethereum/go-ethereum v1.8.27
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/pborman/uuid v1.2.0 // indirect
+	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/rs/cors v1.6.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
@@ -14,4 +16,5 @@ require (
 	go.dedis.ch/kyber/v3 v3.0.3
 	go.dedis.ch/onet/v3 v3.0.14
 	go.dedis.ch/protobuf v1.0.6
+	gopkg.in/urfave/cli.v1 v1.20.0
 )
