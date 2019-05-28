@@ -2,6 +2,7 @@ package stainless
 
 import (
 	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/cothority/v3/byzcoin"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/network"
 )
@@ -87,6 +88,27 @@ func (c *Client) FinalizeTransaction(dst *network.ServerIdentity, tx []byte, sig
 		Signature:   signature,
 	}
 	response := &TransactionResponse{}
+
+	err := c.SendProtobuf(dst, request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
+}
+
+func (c *Client) Call(dst *network.ServerIdentity, blockID []byte, serverConfig string, bevmInstanceID byzcoin.InstanceID, accountAddress []byte, contractAddress []byte, abi string, method string, args ...string) (*CallResponse, error) {
+	request := &CallRequest{
+		BlockID:         blockID,
+		ServerConfig:    serverConfig,
+		BEvmInstanceID:  bevmInstanceID[:],
+		AccountAddress:  accountAddress,
+		ContractAddress: contractAddress,
+		Abi:             abi,
+		Method:          method,
+		Args:            args,
+	}
+	response := &CallResponse{}
 
 	err := c.SendProtobuf(dst, request, response)
 	if err != nil {

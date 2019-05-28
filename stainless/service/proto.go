@@ -70,3 +70,18 @@ type TransactionFinalizationRequest struct {
 type TransactionResponse struct {
 	Transaction []byte
 }
+
+type CallRequest struct {
+	BlockID         []byte
+	ServerConfig    string
+	BEvmInstanceID  []byte
+	AccountAddress  []byte
+	ContractAddress []byte
+	Abi             string // JSON-encoded
+	Method          string
+	Args            []string // JSON-encoded
+}
+
+type CallResponse struct {
+	Result string // JSON-encoded
+}

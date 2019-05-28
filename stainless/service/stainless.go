@@ -7,9 +7,14 @@ package stainless
 // stainless-smart and solcjs@0.4.24
 
 import (
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/cothority/v3/darc"
 	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/app"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
+
+	"github.com/c4dt/cothority-bevm/bevm"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -294,7 +299,7 @@ func decodeArgs(encodedArgs []string) ([]interface{}, error) {
 			return nil, err
 		}
 
-		// HACK: the JSON unmarshaller decodes numbers as float64's; convert them to BigInt's
+		// FIXME: the JSON unmarshaller decodes numbers as float64's; convert them to BigInt's
 		// This currently does not support nested structures.
 		if reflect.TypeOf(arg).Kind() == reflect.Float64 {
 			args[i] = big.NewInt(int64(arg.(float64)))
@@ -398,6 +403,60 @@ func (service *Stainless) FinalizeTransaction(req *TransactionFinalizationReques
 	}, nil
 }
 
+func (service *Stainless) Call(req *CallRequest) (network.Message, error) {
+	abi, err := abi.JSON(strings.NewReader(req.Abi))
+	if err != nil {
+		return nil, err
+	}
+
+	args, err := decodeArgs(req.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	// We don't need the private key for reading proofs
+	account := &bevm.EvmAccount{
+		Address: common.BytesToAddress(req.AccountAddress),
+	}
+	// We don't need the bytecode
+	contract := &bevm.EvmContract{
+		Abi:     abi,
+		Address: common.BytesToAddress(req.ContractAddress),
+	}
+
+	// Read server configuration from TOML data
+	grp, err := app.ReadGroupDescToml(strings.NewReader(req.ServerConfig))
+	if err != nil {
+		return nil, err
+	}
+	// Instantiate a new ByzCoin client
+	bcClient := byzcoin.NewClient(req.BlockID, *grp.Roster)
+
+	// Instantiate a new BEvm client (we don't need a darc to read proofs)
+	bevmClient, err := bevm.NewClient(bcClient, darc.Signer{}, byzcoin.NewInstanceID(req.BEvmInstanceID))
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: Handle result type appropriately
+	result := big.NewInt(0)
+
+	// Execute the view method in the EVM
+	err = bevmClient.Call(account, &result, contract, req.Method, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Lvl4("Returning", result)
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CallResponse{Result: string(resultJSON)}, nil
+}
+
 // newStainlessService creates a new service that is built for Status
 func newStainlessService(context *onet.Context) (onet.Service, error) {
 	service := &Stainless{
@@ -410,6 +469,7 @@ func newStainlessService(context *onet.Context) (onet.Service, error) {
 		service.DeployContract,
 		service.ExecuteTransaction,
 		service.FinalizeTransaction,
+		service.Call,
 	} {
 		err := service.RegisterHandler(srv)
 		if err != nil {
