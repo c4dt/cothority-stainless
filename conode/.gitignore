@@ -1,2 +1,7 @@
-conode_data
-exe/*
+build/conode
+build/conodes/log/
+bcadmin
+phapp
+build/z3
+build/cvc4
+build/stainless.jar
