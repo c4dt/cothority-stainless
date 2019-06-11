@@ -38,7 +38,7 @@ const (
 	solCompiler  = "solcjs"
 	reportName   = "report.json"
 	cacheDir     = "/tmp/stainless-cache-dir"
-	timeout      = 60 * time.Second
+	timeout      = 120 * time.Second
 )
 
 // ServiceName is the name to refer to the Stainless service.
@@ -92,7 +92,8 @@ func verify(sourceFiles map[string]string) (string, string, error) {
 
 	// Build stainless arguments
 	args := append([]string{
-		fmt.Sprintf("--solvers=%s", strings.Join([]string{"smt-z3", "smt-cvc4"}, ",")),
+		fmt.Sprintf("--solvers=%s", strings.Join([]string{"smt-cvc4", "smt-z3"}, ",")),
+		"--smart-contracts",
 		"--json",
 		fmt.Sprintf("--cache-dir=%s", cacheDir),
 	}, filenames...)
@@ -132,6 +133,7 @@ func compileToSolidity(dir string, sourceFilenames []string) ([]string, error) {
 
 	// Build stainless arguments
 	args := append([]string{
+		"--smart-contracts",
 		"--solidity",
 	}, sourceFilenames...)
 
